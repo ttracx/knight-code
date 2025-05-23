@@ -1,54 +1,36 @@
 /**
  * AI Module
  * 
- * Provides AI capabilities using Claude, Anthropic's large language model.
+ * Provides AI capabilities using Ollama with the devstral:24b model.
  * This module handles initialization, configuration, and access to AI services.
  */
 
-import { AIClient } from './client.js';
+import { OllamaClient } from './ollama-client.js';
 import { logger } from '../utils/logger.js';
 import { createUserError } from '../errors/formatter.js';
 import { ErrorCategory } from '../errors/types.js';
-import { authManager } from '../auth/index.js';
 
 // Singleton AI client instance
-let aiClient: AIClient | null = null;
+let aiClient: OllamaClient | null = null;
 
 /**
  * Initialize the AI module
  */
-export async function initAI(config: any = {}): Promise<AIClient> {
+export async function initAI(config: any = {}): Promise<OllamaClient> {
   logger.info('Initializing AI module');
   
   try {
-    // Check if we have authentication
-    if (!authManager.isAuthenticated()) {
-      throw createUserError('Authentication required for AI services', {
-        category: ErrorCategory.AUTHENTICATION,
-        resolution: 'Please log in using the login command or provide an API key.'
-      });
-    }
-    
-    // Get the auth token
-    const authToken = authManager.getToken();
-    if (!authToken || !authToken.accessToken) {
-      throw createUserError('No valid authentication token available', {
-        category: ErrorCategory.AUTHENTICATION,
-        resolution: 'Please log in again with the login command.'
-      });
-    }
-    
     // Create AI client
-    aiClient = new AIClient(config, authToken.accessToken);
+    aiClient = new OllamaClient(config);
     
     // Test connection
-    logger.debug('Testing connection to AI service');
+    logger.debug('Testing connection to Ollama service');
     const connectionSuccess = await aiClient.testConnection();
     
     if (!connectionSuccess) {
-      throw createUserError('Failed to connect to Claude AI service', {
+      throw createUserError('Failed to connect to Ollama service', {
         category: ErrorCategory.CONNECTION,
-        resolution: 'Check your internet connection and API key, then try again.'
+        resolution: 'Make sure Ollama is running and the devstral:24b model is available.'
       });
     }
     
@@ -60,7 +42,7 @@ export async function initAI(config: any = {}): Promise<AIClient> {
     throw createUserError('Failed to initialize AI capabilities', {
       cause: error,
       category: ErrorCategory.INITIALIZATION,
-      resolution: 'Check your authentication and internet connection, then try again.'
+      resolution: 'Check if Ollama is running and try again.'
     });
   }
 }
@@ -68,7 +50,7 @@ export async function initAI(config: any = {}): Promise<AIClient> {
 /**
  * Get the AI client instance
  */
-export function getAIClient(): AIClient {
+export function getAIClient(): OllamaClient {
   if (!aiClient) {
     throw createUserError('AI module not initialized', {
       category: ErrorCategory.INITIALIZATION,
@@ -87,5 +69,5 @@ export function isAIInitialized(): boolean {
 }
 
 // Re-export types and components
-export * from './client.js';
+export * from './ollama-client.js';
 export * from './prompts.js'; 

@@ -1,75 +1,87 @@
 # Knightcode
 
-Knightcode is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows - all through natural language commands.
+Knightcode is a CLI tool that provides AI-powered coding assistance using Ollama with the devstral:24b model. It runs completely locally on your machine, with no need for authentication or API keys.
 
-## Features
+## Prerequisites
 
-- Edit files and fix bugs across your codebase
-- Answer questions about your code's architecture and logic
-- Execute and fix tests, lint, and other commands
-- Search through git history, resolve merge conflicts, and create commits and PRs
+- Node.js >= 18.0.0
+- [Ollama](https://ollama.ai/) installed and running
+- The devstral:24b model pulled in Ollama
 
 ## Installation
 
-```bash
-npm install -g @ttracx/knightcode
-```
+1. Install Ollama from [ollama.ai](https://ollama.ai/)
+2. Pull the devstral:24b model:
+   ```bash
+   ollama pull devstral:24b
+   ```
+3. Install Knightcode:
+   ```bash
+   npm install -g @ttracx/knightcode
+   ```
 
 ## Usage
 
-### Research Preview
+Knightcode provides several commands to help with your coding tasks:
 
+### Ask Questions
 ```bash
-knightcode
+knightcode ask "How do I implement a binary search tree in TypeScript?"
 ```
 
-### Basic Commands
+### Explain Code
+```bash
+knightcode explain path/to/file.js
+```
 
-- `knightcode ask "How do I implement a binary search tree in TypeScript?"`
-- `knightcode explain path/to/file.js`
-- `knightcode refactor path/to/file.py --focus=performance`
-- `knightcode fix path/to/code.ts`
+### Refactor Code
+```bash
+knightcode refactor path/to/file.py --focus=performance
+```
 
-### Available Commands
+### Fix Bugs
+```bash
+knightcode fix path/to/code.ts
+```
 
-- `/help` - Show help information
-- `/ask` - Ask questions about code or programming
-- `/explain` - Explain code files or snippets
-- `/refactor` - Refactor code for better readability or performance
-- `/fix` - Fix bugs or issues in code
-- `/generate` - Generate code based on a prompt
-- `/search` - Search through your codebase
-- `/git` - Perform git operations
-- `/config` - View or edit configuration settings
-- `/theme` - Change the UI theme
-- `/verbosity` - Set output verbosity level
+### Get Help
+```bash
+knightcode help
+knightcode help <command>
+```
 
-## Requirements
+## Features
 
-- Node.js >= 18.0.0
-- macOS or Linux (Windows is not supported)
+- **Local AI Processing**: All AI processing is done locally using Ollama
+- **No Authentication Required**: No need for API keys or authentication
+- **Code Generation**: Generate code based on natural language descriptions
+- **Code Explanation**: Get detailed explanations of code
+- **Code Refactoring**: Refactor code with AI assistance
+- **Bug Fixing**: Identify and fix bugs in your code
 
 ## Development
 
-```bash
-# Clone the repository
-git clone https://github.com/ttracx/knightcode.git
-cd knightcode
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/ttracx/knightcode.git
+   cd knightcode
+   ```
 
-# Install dependencies
-npm install
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-# Build the project
-npm run build
+3. Build the project:
+   ```bash
+   npm run build
+   ```
 
-# Run in development mode
-npm run dev
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+4. Run in development mode:
+   ```bash
+   npm run dev
+   ```
 
 ## License
 
-MIT © ttracx # knight-code
+MIT

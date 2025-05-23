@@ -138,9 +138,6 @@ async function initCLI(): Promise<void> {
     // Register commands
     registerCommands();
     
-    // Initialize authentication
-    await authManager.initialize();
-    
     // Parse command-line arguments
     const { commandName, args } = parseCommandLineArgs();
     
@@ -153,17 +150,8 @@ async function initCLI(): Promise<void> {
       process.exit(1);
     }
     
-    // Check if command requires authentication
-    if (command.requiresAuth && !authManager.isAuthenticated()) {
-      console.error(`Command '${commandName}' requires authentication.`);
-      console.error('Please log in using the "knightcode login" command first.');
-      process.exit(1);
-    }
-    
-    // Initialize AI if required
-    if (command.requiresAuth) {
-      await initAI();
-    }
+    // Initialize AI
+    await initAI();
     
     // Execute the command
     await executeCommand(commandName, args);
