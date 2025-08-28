@@ -1,7 +1,7 @@
 {
   "name": "@neuroequalityorg/knightcode",
-  "version": "0.2.3",
-  "description": "Knightcode CLI - Your local AI coding assistant using Ollama",
+  "version": "0.2.4",
+  "description": "Knightcode CLI - Your local AI coding assistant using Ollama, LM Studio, and more",
   "main": "dist/src/cli.js",
   "type": "module",
   "bin": {
@@ -22,12 +22,15 @@
     "cli",
     "assistant",
     "knightcode",
-    "ollama"
+    "ollama",
+    "lmstudio",
+    "local-ai",
+    "privacy",
+    "coding-assistant"
   ],
   "author": "neuroequalityorg",
   "license": "MIT",
   "dependencies": {
-    "@neuroequalityorg/knightcode": "^0.2.2",
     "chalk": "^5.3.0",
     "inquirer": "^9.2.12",
     "node-fetch": "^3.3.1",
