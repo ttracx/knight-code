@@ -10,6 +10,15 @@ import { z } from 'zod';
 // Define log level enum
 const LogLevel = z.enum(['error', 'warn', 'info', 'verbose', 'debug', 'trace']);
 
+// AI configuration schema
+const AIConfigSchema = z.object({
+  provider: z.enum(['ollama', 'lmstudio', 'anthropic']).default('ollama'),
+  model: z.string().optional(),
+  temperature: z.number().min(0).max(2).default(0.7),
+  maxTokens: z.number().positive().default(4096),
+  timeout: z.number().positive().default(60000)
+});
+
 // API configuration schema
 const ApiConfigSchema = z.object({
   key: z.string().optional(),
@@ -84,6 +93,7 @@ export const configSchema = z.object({
   logLevel: LogLevel.default('info'),
   
   // Subsystem configurations
+  ai: AIConfigSchema.default({}),
   api: ApiConfigSchema.default({}),
   telemetry: TelemetryConfigSchema.default({}),
   terminal: TerminalConfigSchema.default({}),

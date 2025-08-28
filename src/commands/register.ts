@@ -201,7 +201,10 @@ function registerAskCommand(): void {
         
         // Get AI client and send question
         const aiClient = getAIClient();
-        const result = await aiClient.complete(question);
+        const result = await aiClient.complete({
+          messages: [{ role: 'user', content: question }],
+          maxTokens: 2048
+        });
         
         // Extract and print the response
         const responseText = result.content[0]?.text || 'No response received';
@@ -276,7 +279,10 @@ function registerExplainCommand(): void {
         
         // Get AI client and send request
         const aiClient = getAIClient();
-        const result = await aiClient.complete(prompt);
+        const result = await aiClient.complete({
+          messages: [{ role: 'user', content: prompt }],
+          maxTokens: 2048
+        });
         
         // Extract and print the response
         const responseText = result.content[0]?.text || 'No explanation received';
@@ -346,7 +352,10 @@ function registerRefactorCommand(): void {
         
         // Get AI client and send request
         const aiClient = getAIClient();
-        const result = await aiClient.complete(prompt);
+        const result = await aiClient.complete({
+          messages: [{ role: 'user', content: prompt }],
+          maxTokens: 2048
+        });
         
         // Extract and print the response
         const responseText = result.content[0]?.text || 'No refactored code received';
@@ -427,7 +436,10 @@ function registerFixCommand(): void {
         
         // Get AI client and send request
         const aiClient = getAIClient();
-        const result = await aiClient.complete(prompt);
+        const result = await aiClient.complete({
+          messages: [{ role: 'user', content: prompt }],
+          maxTokens: 2048
+        });
         
         // Extract and print the response
         const responseText = result.content[0]?.text || 'No fixed code received';
@@ -493,7 +505,10 @@ function registerGenerateCommand(): void {
         
         // Get AI client and send request
         const aiClient = getAIClient();
-        const result = await aiClient.complete(fullPrompt);
+        const result = await aiClient.complete({
+          messages: [{ role: 'user', content: fullPrompt }],
+          maxTokens: 2048
+        });
         
         // Extract and print the response
         const responseText = result.content[0]?.text || 'No code generated';

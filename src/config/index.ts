@@ -16,19 +16,21 @@ import { ErrorCategory } from '../errors/types.js';
  * Default configuration values
  */
 const DEFAULT_CONFIG = {
-  // API configuration
+  // AI configuration - prioritize local providers
+  ai: {
+    provider: 'ollama', // Default to Ollama, fallback to LM Studio
+    model: 'devstral:24b', // Default Ollama model
+    temperature: 0.7,
+    maxTokens: 4096,
+    maxHistoryLength: 20,
+    timeout: 60000
+  },
+  
+  // API configuration - only used if local providers fail
   api: {
     baseUrl: 'https://api.anthropic.com',
     version: 'v1',
     timeout: 60000
-  },
-  
-  // AI configuration
-  ai: {
-    model: 'claude-3-opus-20240229',
-    temperature: 0.5,
-    maxTokens: 4096,
-    maxHistoryLength: 20
   },
   
   // Authentication configuration
@@ -80,21 +82,21 @@ const DEFAULT_CONFIG = {
  */
 const CONFIG_PATHS = [
   // Current directory
-  path.join(process.cwd(), '.claude-code.json'),
-  path.join(process.cwd(), '.claude-code.js'),
+  path.join(process.cwd(), '.knightcode.json'),
+  path.join(process.cwd(), '.knightcode.js'),
   
   // User home directory
-  path.join(os.homedir(), '.claude-code', 'config.json'),
-  path.join(os.homedir(), '.claude-code.json'),
+  path.join(os.homedir(), '.knightcode', 'config.json'),
+  path.join(os.homedir(), '.knightcode.json'),
   
   // XDG config directory (Linux/macOS)
   process.env.XDG_CONFIG_HOME 
-    ? path.join(process.env.XDG_CONFIG_HOME, 'claude-code', 'config.json')
-    : path.join(os.homedir(), '.config', 'claude-code', 'config.json'),
+    ? path.join(process.env.XDG_CONFIG_HOME, 'knightcode', 'config.json')
+    : path.join(os.homedir(), '.config', 'knightcode', 'config.json'),
   
   // AppData directory (Windows)
   process.env.APPDATA
-    ? path.join(process.env.APPDATA, 'claude-code', 'config.json')
+    ? path.join(process.env.APPDATA, 'knightcode', 'config.json')
     : null
 ].filter(Boolean) as string[];
 
@@ -130,13 +132,25 @@ function loadConfigFromFile(configPath: string): any {
 function loadConfigFromEnv(): any {
   const envConfig: any = {};
   
-  // Check for API key
+  // Check for AI provider
+  if (process.env.KNIGHTCODE_AI_PROVIDER) {
+    envConfig.ai = envConfig.ai || {};
+    envConfig.ai.provider = process.env.KNIGHTCODE_AI_PROVIDER;
+  }
+  
+  // Check for AI model
+  if (process.env.KNIGHTCODE_AI_MODEL) {
+    envConfig.ai = envConfig.ai || {};
+    envConfig.ai.model = process.env.KNIGHTCODE_AI_MODEL;
+  }
+  
+  // Check for API key (for Anthropic)
   if (process.env.CLAUDE_API_KEY) {
     envConfig.api = envConfig.api || {};
     envConfig.api.key = process.env.CLAUDE_API_KEY;
   }
   
-  // Check for API URL
+  // Check for API URL (for Anthropic)
   if (process.env.CLAUDE_API_URL) {
     envConfig.api = envConfig.api || {};
     envConfig.api.baseUrl = process.env.CLAUDE_API_URL;
@@ -152,12 +166,6 @@ function loadConfigFromEnv(): any {
   if (process.env.CLAUDE_TELEMETRY === '0' || process.env.CLAUDE_TELEMETRY === 'false') {
     envConfig.telemetry = envConfig.telemetry || {};
     envConfig.telemetry.enabled = false;
-  }
-  
-  // Check for model override
-  if (process.env.CLAUDE_MODEL) {
-    envConfig.ai = envConfig.ai || {};
-    envConfig.ai.model = process.env.CLAUDE_MODEL;
   }
   
   return envConfig;
@@ -196,25 +204,40 @@ function mergeConfigs(...configs: any[]): any {
  * Validate critical configuration
  */
 function validateConfig(config: any): void {
-  // Validate API configuration
-  if (!config.api.baseUrl) {
-    throw createUserError('API base URL is not configured', {
+  // Validate AI configuration
+  if (!config.ai.provider) {
+    throw createUserError('AI provider is not configured', {
       category: ErrorCategory.CONFIGURATION,
-      resolution: 'Provide a valid API base URL in your configuration'
+      resolution: 'Specify a valid AI provider (ollama, lmstudio, or anthropic) in your configuration'
     });
   }
   
-  // Validate authentication
-  if (!config.api.key && !config.auth.token) {
-    logger.warn('No API key or authentication token configured');
+  // Only validate API configuration if using Anthropic
+  if (config.ai.provider === 'anthropic') {
+    if (!config.api.baseUrl) {
+      throw createUserError('API base URL is not configured for Anthropic', {
+        category: ErrorCategory.CONFIGURATION,
+        resolution: 'Provide a valid API base URL in your configuration when using Anthropic'
+      });
+    }
+    
+    // Validate authentication for Anthropic
+    if (!config.api.key && !config.auth.token) {
+      logger.warn('No API key or authentication token configured for Anthropic');
+    }
+    
+    // Validate AI model for Anthropic
+    if (!config.ai.model) {
+      throw createUserError('AI model is not configured for Anthropic', {
+        category: ErrorCategory.CONFIGURATION,
+        resolution: 'Specify a valid Claude model in your configuration when using Anthropic'
+      });
+    }
   }
   
-  // Validate AI model
-  if (!config.ai.model) {
-    throw createUserError('AI model is not configured', {
-      category: ErrorCategory.CONFIGURATION,
-      resolution: 'Specify a valid Claude model in your configuration'
-    });
+  // For local providers, validate model if specified
+  if (config.ai.provider !== 'anthropic' && config.ai.model) {
+    logger.debug(`Using ${config.ai.provider} with model: ${config.ai.model}`);
   }
 }
 
@@ -256,6 +279,18 @@ export async function loadConfig(options: any = {}): Promise<any> {
     
     if (options.debug) {
       cliConfig.logger = { level: 'debug' };
+    }
+    
+    // AI provider selection
+    if (options.provider) {
+      cliConfig.ai = cliConfig.ai || {};
+      cliConfig.ai.provider = options.provider;
+    }
+    
+    // AI model selection
+    if (options.model) {
+      cliConfig.ai = cliConfig.ai || {};
+      cliConfig.ai.model = options.model;
     }
     
     if (options.config) {

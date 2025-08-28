@@ -13,6 +13,7 @@ import { initAI } from './ai/index.js';
 import { authManager } from './auth/index.js';
 import { registerCommands } from './commands/register.js';
 import { UserError } from './errors/types.js';
+import { loadConfig } from './config/index.js';
 import pkg from '../package.json' with { type: 'json' };
 
 // Get version from package.json
@@ -102,7 +103,7 @@ function displayVersion(): void {
 /**
  * Parse command-line arguments
  */
-function parseCommandLineArgs(): { commandName: string; args: string[] } {
+function parseCommandLineArgs(): { commandName: string; args: string[]; options: any } {
   // Get arguments, excluding node and script path
   const args = process.argv.slice(2);
   
@@ -127,7 +128,30 @@ function parseCommandLineArgs(): { commandName: string; args: string[] } {
     process.exit(0);
   }
   
-  return { commandName, args: args.slice(1) };
+  // Parse options (flags starting with -- or -)
+  const options: any = {};
+  const filteredArgs: string[] = [];
+  
+  for (let i = 1; i < args.length; i++) {
+    const arg = args[i];
+    if (arg.startsWith('--')) {
+      const [key, value] = arg.slice(2).split('=');
+      options[key] = value || true;
+    } else if (arg.startsWith('-') && arg.length === 2) {
+      // Handle short flags like -p
+      const key = arg.slice(1);
+      if (i + 1 < args.length && !args[i + 1].startsWith('-')) {
+        options[key] = args[i + 1];
+        i++; // Skip the next argument
+      } else {
+        options[key] = true;
+      }
+    } else {
+      filteredArgs.push(arg);
+    }
+  }
+  
+  return { commandName, args: filteredArgs, options };
 }
 
 /**
@@ -139,7 +163,7 @@ async function initCLI(): Promise<void> {
     registerCommands();
     
     // Parse command-line arguments
-    const { commandName, args } = parseCommandLineArgs();
+    const { commandName, args, options } = parseCommandLineArgs();
     
     // Get the command
     const command = commandRegistry.get(commandName);
@@ -150,8 +174,19 @@ async function initCLI(): Promise<void> {
       process.exit(1);
     }
     
-    // Initialize AI
-    await initAI();
+    // Only initialize AI for commands that require it
+    if (command.requiresAuth || command.name === 'ask' || command.name === 'explain' || 
+        command.name === 'fix' || command.name === 'generate' || command.name === 'refactor') {
+      try {
+        // Load configuration and pass it to AI initialization
+        const config = await loadConfig(options);
+        await initAI(config);
+      } catch (error) {
+        // If AI initialization fails, show a helpful message but don't crash
+        logger.warn('AI initialization failed, some features may not work');
+        logger.debug('AI error:', error);
+      }
+    }
     
     // Execute the command
     await executeCommand(commandName, args);

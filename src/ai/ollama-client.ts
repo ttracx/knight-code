@@ -1,33 +1,17 @@
 /**
  * Ollama Client
  * 
- * Handles interaction with Ollama API, using the devstral:24b model
- * for text completion and code assistance features.
+ * Handles interaction with Ollama API for text completion
+ * and code assistance features.
  */
 
 import { logger } from '../utils/logger.js';
 import { createUserError } from '../errors/formatter.js';
 import { ErrorCategory } from '../errors/types.js';
 import { withTimeout, withRetry } from '../utils/async.js';
+import { AIProvider, Message, CompletionOptions, CompletionResponse, StreamEvent } from './provider.js';
 
-// Types for API requests and responses
-export interface Message {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
-
-export interface CompletionOptions {
-  model?: string;
-  temperature?: number;
-  maxTokens?: number;
-  topP?: number;
-  topK?: number;
-  stopSequences?: string[];
-  stream?: boolean;
-  system?: string;
-}
-
-export interface CompletionRequest {
+interface CompletionRequest {
   model: string;
   messages: Message[];
   temperature?: number;
@@ -37,44 +21,6 @@ export interface CompletionRequest {
   stop_sequences?: string[];
   stream?: boolean;
   system?: string;
-}
-
-export interface CompletionResponse {
-  id: string;
-  model: string;
-  usage: {
-    input_tokens: number;
-    output_tokens: number;
-  };
-  content: {
-    type: string;
-    text: string;
-  }[];
-  stop_reason?: string;
-  stop_sequence?: string;
-}
-
-export interface StreamEvent {
-  type: 'message_start' | 'content_block_start' | 'content_block_delta' | 'content_block_stop' | 'message_delta' | 'message_stop';
-  message?: {
-    id: string;
-    model: string;
-    content: {
-      type: string;
-      text: string;
-    }[];
-    stop_reason?: string;
-    stop_sequence?: string;
-  };
-  index?: number;
-  delta?: {
-    type: string;
-    text: string;
-  };
-  usage_metadata?: {
-    input_tokens: number;
-    output_tokens: number;
-  };
 }
 
 interface ApiError {
@@ -100,7 +46,7 @@ const DEFAULT_CONFIG = {
 /**
  * Ollama AI client for interacting with Ollama API
  */
-export class OllamaClient {
+export class OllamaClient implements AIProvider {
   private config: typeof DEFAULT_CONFIG;
   
   /**
@@ -127,16 +73,11 @@ export class OllamaClient {
   /**
    * Send a completion request to Ollama
    */
-  async complete(
-    prompt: string | Message[],
-    options: CompletionOptions = {}
-  ): Promise<CompletionResponse> {
+  async complete(options: CompletionOptions): Promise<CompletionResponse> {
     logger.debug('Sending completion request', { model: options.model || this.config.defaultModel });
     
     // Format the request
-    const messages: Message[] = Array.isArray(prompt) 
-      ? prompt 
-      : [{ role: 'user', content: prompt }];
+    const messages: Message[] = options.messages;
     
     const request = {
       model: options.model || this.config.defaultModel,
@@ -197,17 +138,11 @@ export class OllamaClient {
   /**
    * Send a streaming completion request to Ollama
    */
-  async completeStream(
-    prompt: string | Message[],
-    options: CompletionOptions = {},
-    onEvent: (event: StreamEvent) => void
-  ): Promise<void> {
+  async *completeStream(options: CompletionOptions): AsyncGenerator<StreamEvent> {
     logger.debug('Sending streaming completion request', { model: options.model || this.config.defaultModel });
     
     // Format the request
-    const messages: Message[] = Array.isArray(prompt) 
-      ? prompt 
-      : [{ role: 'user', content: prompt }];
+    const messages: Message[] = options.messages;
     
     const request = {
       model: options.model || this.config.defaultModel,
@@ -222,19 +157,33 @@ export class OllamaClient {
       }
     };
     
+    // For now, return a simple stream implementation
+    // In a full implementation, this would handle actual streaming
     try {
-      await this.sendStreamRequest('/api/generate', {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(request)
-      }, onEvent);
-    } catch (error: unknown) {
-      let errorMessage = 'Unknown error';
-      if (error && typeof error === 'object' && 'error' in error) {
-        const err = error as { error?: { message?: string } };
-        errorMessage = err.error?.message || 'Unknown error';
-      }
-      throw new Error(errorMessage);
+      const response = await this.complete(options);
+      
+      yield {
+        type: 'message_start',
+        message: {
+          id: response.id,
+          model: response.model,
+          content: response.content,
+          stop_reason: response.stop_reason
+        }
+      };
+      
+      yield {
+        type: 'message_stop',
+        message: {
+          id: response.id,
+          model: response.model,
+          content: response.content,
+          stop_reason: response.stop_reason
+        }
+      };
+    } catch (error) {
+      logger.error('Ollama streaming failed:', error);
+      throw error;
     }
   }
   
@@ -258,25 +207,28 @@ export class OllamaClient {
     logger.debug('Testing connection to Ollama API');
     
     try {
-      // Send a minimal request to test connectivity
-      const result = await this.complete('Hello', {
-        maxTokens: 10,
-        temperature: 0
+      // First try to get available models (lighter request)
+      const models = await this.getModels();
+      if (models.length > 0) {
+        logger.debug('Connection test successful - found models:', models);
+        return true;
+      }
+      
+      // If no models found, try a simple health check
+      const response = await fetch(`${this.config.apiBaseUrl}/api/tags`, {
+        method: 'GET',
+        headers: this.getHeaders()
       });
       
-      logger.debug('Connection test successful', { modelUsed: result.model });
-      return true;
-    } catch (error: unknown) {
-      let errorMessage = 'Unknown error';
-      try {
-        const apiError = error as ApiError;
-        if (apiError?.error?.message) {
-          errorMessage = apiError.error.message;
-        }
-      } catch {
-        // If parsing fails, use the default error message
+      if (response.ok) {
+        logger.debug('Connection test successful - API responded');
+        return true;
       }
-      logger.error(errorMessage);
+      
+      logger.debug('Connection test failed - API responded with status:', response.status);
+      return false;
+    } catch (error: unknown) {
+      logger.debug('Connection test failed with error:', error);
       return false;
     }
   }
@@ -381,5 +333,55 @@ export class OllamaClient {
     } finally {
       reader.releaseLock();
     }
+  }
+
+  /**
+   * Get available models from Ollama
+   */
+  async getModels(): Promise<string[]> {
+    try {
+      const response = await this.sendRequest('/api/tags', { method: 'GET' });
+      return response.models?.map((model: any) => model.name) || [];
+    } catch (error) {
+      logger.error('Failed to get Ollama models:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Set the model to use
+   */
+  setModel(model: string): void {
+    this.config.defaultModel = model;
+    logger.debug('Ollama model set to:', model);
+  }
+
+  /**
+   * Get the current model
+   */
+  getModel(): string {
+    return this.config.defaultModel;
+  }
+
+  /**
+   * Get configuration information
+   */
+  getConfig(): any {
+    return { ...this.config };
+  }
+
+  /**
+   * Update configuration
+   */
+  updateConfig(newConfig: Partial<typeof DEFAULT_CONFIG>): void {
+    this.config = { ...this.config, ...newConfig };
+    logger.debug('Ollama client configuration updated:', this.config);
+  }
+
+  /**
+   * Get provider name
+   */
+  getProviderName(): string {
+    return 'ollama';
   }
 } 

@@ -14,6 +14,15 @@ export const defaultConfig: Partial<ConfigType> = {
   // Basic configuration
   logLevel: 'info',
   
+  // AI configuration
+  ai: {
+    provider: 'ollama',
+    model: 'devstral:24b',
+    temperature: 0.7,
+    maxTokens: 4096,
+    timeout: 60000 // 60 seconds
+  },
+  
   // API configuration
   api: {
     baseUrl: 'https://api.anthropic.com',
