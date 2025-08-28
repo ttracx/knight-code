@@ -12,6 +12,14 @@ import { ErrorCategory } from '../errors/types.js';
 import { createDeferred } from '../utils/async.js';
 import open from 'open';
 
+interface OAuthTokenResponse {
+    access_token: string;
+    refresh_token?: string;
+    expires_in?: number;
+    token_type?: string;
+    scope?: string;
+}
+
 /**
  * Default OAuth configuration for Anthropic API
  */
@@ -112,12 +120,12 @@ export async function refreshOAuthToken(refreshToken: string, config: OAuthConfi
       });
     }
     
-    const data = await response.json();
+    const data = await response.json() as OAuthTokenResponse;
     
     // Build token from response
     const token: AuthToken = {
       accessToken: data.access_token,
-      refreshToken: data.refresh_token || refreshToken, // Use existing refresh token if not provided
+      refreshToken: data.refresh_token || refreshToken,
       expiresAt: Math.floor(Date.now() / 1000) + (data.expires_in || 3600),
       tokenType: data.token_type || 'Bearer',
       scope: data.scope || ''
@@ -264,7 +272,7 @@ async function exchangeCodeForToken(
     });
   }
   
-  const data = await response.json();
+  const data = await response.json() as OAuthTokenResponse;
   
   // Build token from response
   const token: AuthToken = {

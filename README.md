@@ -1,87 +1,91 @@
-# Knightcode
+# Knightcode CLI
 
-Knightcode is a CLI tool that provides AI-powered coding assistance using Ollama with the devstral:24b model. It runs completely locally on your machine, with no need for authentication or API keys.
+A powerful AI coding assistant CLI tool that helps you write, understand, and debug code using Ollama.
+
+## Features
+
+- 🤖 AI-powered code assistance
+- 📝 Code generation and refactoring
+- 🔍 Code explanation and documentation
+- 🐛 Bug fixing and debugging
+- 💡 Intelligent code suggestions
+- 🔄 Real-time code analysis
+
+## Installation
+
+```bash
+npm install -g @neuroequalityorg/knightcode
+```
 
 ## Prerequisites
 
 - Node.js >= 18.0.0
-- [Ollama](https://ollama.ai/) installed and running
-- The devstral:24b model pulled in Ollama
-
-## Installation
-
-1. Install Ollama from [ollama.ai](https://ollama.ai/)
-2. Pull the devstral:24b model:
-   ```bash
-   ollama pull devstral:24b
-   ```
-3. Install Knightcode:
-   ```bash
-   npm install -g @ttracx/knightcode
-   ```
+- Ollama installed and running locally
 
 ## Usage
 
-Knightcode provides several commands to help with your coding tasks:
-
-### Ask Questions
 ```bash
+# Start the CLI
+knightcode
+
+# Ask a coding question
 knightcode ask "How do I implement a binary search tree in TypeScript?"
+
+# Explain code
+knightcode explain path/to/file.ts
+
+# Refactor code
+knightcode refactor path/to/file.ts --focus readability
+
+# Fix bugs
+knightcode fix path/to/file.ts --issue "Infinite loop in the sort function"
 ```
 
-### Explain Code
-```bash
-knightcode explain path/to/file.js
-```
+## Commands
 
-### Refactor Code
-```bash
-knightcode refactor path/to/file.py --focus=performance
-```
+- `ask` - Ask questions about code or programming
+- `explain` - Get explanations of code files or snippets
+- `refactor` - Refactor code for better readability or performance
+- `fix` - Fix bugs or issues in code
+- `generate` - Generate code based on a prompt
+- `config` - View or edit configuration settings
+- `login` - Log in to Knightcode
+- `logout` - Log out and clear stored credentials
 
-### Fix Bugs
-```bash
-knightcode fix path/to/code.ts
-```
+## Configuration
 
-### Get Help
-```bash
-knightcode help
-knightcode help <command>
-```
+Knightcode can be configured through:
 
-## Features
+1. Environment variables
+2. Configuration file (`.claude-code.json`)
+3. Command line arguments
 
-- **Local AI Processing**: All AI processing is done locally using Ollama
-- **No Authentication Required**: No need for API keys or authentication
-- **Code Generation**: Generate code based on natural language descriptions
-- **Code Explanation**: Get detailed explanations of code
-- **Code Refactoring**: Refactor code with AI assistance
-- **Bug Fixing**: Identify and fix bugs in your code
+See the [Configuration Guide](docs/configuration.md) for details.
 
 ## Development
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/ttracx/knightcode.git
-   cd knightcode
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/ttracx/knightcode.git
+cd knightcode
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+# Install dependencies
+npm install
 
-3. Build the project:
-   ```bash
-   npm run build
-   ```
+# Build the project
+npm run build
 
-4. Run in development mode:
-   ```bash
-   npm run dev
-   ```
+# Run in development mode
+npm run dev
+
+# Run tests
+npm test
+```
+
+## Contributing
+
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE.md) file for details.

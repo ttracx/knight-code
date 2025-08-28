@@ -1,10 +1,10 @@
 /**
  * Error Formatter
  * 
- * Utilities for formatting errors and creating user-friendly error messages.
+ * Provides functions for formatting and creating user-friendly error messages.
  */
 
-import { ErrorCategory, ErrorLevel, UserError, UserErrorOptions } from './types.js';
+import { ErrorCategory, ErrorLevel, UserError, ErrorOptions } from './types.js';
 import { logger } from '../utils/logger.js';
 import { formatErrorDetails } from '../utils/formatting.js';
 
@@ -13,7 +13,7 @@ import { formatErrorDetails } from '../utils/formatting.js';
  */
 export function createUserError(
   message: string,
-  options: UserErrorOptions = {}
+  options: ErrorOptions = {}
 ): UserError {
   // Create UserError instance
   const userError = new UserError(message, options);
@@ -30,64 +30,83 @@ export function createUserError(
 }
 
 /**
- * Format an error for display to the user
+ * Format an error for display
  */
-export function formatErrorForDisplay(error: unknown): string {
-  if (error instanceof UserError) {
-    return formatUserError(error);
-  }
-  
-  if (error instanceof Error) {
-    return formatSystemError(error);
-  }
-  
-  return `Unknown error: ${String(error)}`;
+export function formatErrorForDisplay(error: unknown, options: ErrorOptions = {}): string {
+    if (error instanceof UserError) {
+        return formatUserError(error);
+    }
+    
+    if (error instanceof Error) {
+        return formatStandardError(error, options);
+    }
+    
+    return formatUnknownError(error, options);
 }
 
 /**
- * Format a UserError for display
+ * Format a user error
  */
 function formatUserError(error: UserError): string {
-  let message = `Error: ${error.message}`;
-  
-  // Add resolution steps if available
-  if (error.resolution) {
-    const resolutionSteps = Array.isArray(error.resolution)
-      ? error.resolution
-      : [error.resolution];
+    const parts = [
+        `[${error.category}]`,
+        `[${error.level}]`,
+        error.message
+    ];
     
-    message += '\n\nTo resolve this:';
-    resolutionSteps.forEach(step => {
-      message += `\n• ${step}`;
-    });
-  }
-  
-  // Add details if available
-  if (error.details && Object.keys(error.details).length > 0) {
-    message += '\n\nDetails:';
-    for (const [key, value] of Object.entries(error.details)) {
-      const formattedValue = typeof value === 'object'
-        ? JSON.stringify(value, null, 2)
-        : String(value);
-      message += `\n${key}: ${formattedValue}`;
+    if (error.resolution) {
+        parts.push(`\nResolution: ${error.resolution}`);
     }
-  }
-  
-  return message;
+    
+    if (error.details) {
+        parts.push(`\nDetails: ${JSON.stringify(error.details, null, 2)}`);
+    }
+    
+    return parts.join(' ');
 }
 
 /**
- * Format a system Error for display
+ * Format a standard error
  */
-function formatSystemError(error: Error): string {
-  let message = `System error: ${error.message}`;
-  
-  // Add stack trace for certain categories of errors
-  if (process.env.DEBUG === 'true') {
-    message += `\n\nStack trace:\n${error.stack || 'No stack trace available'}`;
-  }
-  
-  return message;
+function formatStandardError(error: Error, options: ErrorOptions): string {
+    const category = options.category || ErrorCategory.UNKNOWN;
+    const level = options.level || ErrorLevel.ERROR;
+    
+    const parts = [
+        `[${category}]`,
+        `[${level}]`,
+        error.message
+    ];
+    
+    if (error.stack) {
+        parts.push(`\nStack: ${error.stack}`);
+    }
+    
+    if (options.details) {
+        parts.push(`\nDetails: ${JSON.stringify(options.details, null, 2)}`);
+    }
+    
+    return parts.join(' ');
+}
+
+/**
+ * Format an unknown error
+ */
+function formatUnknownError(error: unknown, options: ErrorOptions): string {
+    const category = options.category || ErrorCategory.UNKNOWN;
+    const level = options.level || ErrorLevel.ERROR;
+    
+    const parts = [
+        `[${category}]`,
+        `[${level}]`,
+        String(error)
+    ];
+    
+    if (options.details) {
+        parts.push(`\nDetails: ${JSON.stringify(options.details, null, 2)}`);
+    }
+    
+    return parts.join(' ');
 }
 
 /**
@@ -96,7 +115,7 @@ function formatSystemError(error: Error): string {
 export function ensureUserError(
   error: unknown,
   defaultMessage: string = 'An unexpected error occurred',
-  options: UserErrorOptions = {}
+  options: ErrorOptions = {}
 ): UserError {
   if (error instanceof UserError) {
     return error;
@@ -118,14 +137,14 @@ export function ensureUserError(
  * Get a category name for an error
  */
 export function getErrorCategoryName(category: ErrorCategory): string {
-  return ErrorCategory[category] || 'Unknown';
+    return category;
 }
 
 /**
  * Get an error level name
  */
 export function getErrorLevelName(level: ErrorLevel): string {
-  return ErrorLevel[level] || 'Unknown';
+    return level;
 }
 
 /**
@@ -141,4 +160,18 @@ export function getErrorDetails(error: unknown): string {
   }
   
   return String(error);
+}
+
+/**
+ * Format an error category for display
+ */
+function formatErrorCategory(category: ErrorCategory): string {
+  return category;
+}
+
+/**
+ * Format an error level for display
+ */
+function formatErrorLevel(level: ErrorLevel): string {
+  return level;
 } 

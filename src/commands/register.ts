@@ -13,6 +13,7 @@ import { formatErrorForDisplay } from '../errors/formatter.js';
 import { authManager } from '../auth/index.js';
 import { createUserError } from '../errors/formatter.js';
 import { ErrorCategory } from '../errors/types.js';
+import { AuthMethod } from '../auth/types.js';
 
 /**
  * Register all commands
@@ -64,7 +65,7 @@ function registerLoginCommand(): void {
         
         if (apiKey) {
           // Use API key authentication
-          const authResult = await authManager.authenticateWithApiKey(apiKey);
+          const authResult = await authManager.authenticate(AuthMethod.API_KEY);
           if (authResult.success) {
             console.log('Successfully logged in with API key.');
             
@@ -78,7 +79,7 @@ function registerLoginCommand(): void {
           }
         } else if (oauth) {
           // Use OAuth authentication
-          const authResult = await authManager.authenticateWithOAuth();
+          const authResult = await authManager.authenticate(AuthMethod.OAUTH);
           if (authResult.success) {
             console.log('Successfully logged in with OAuth.');
             
@@ -95,7 +96,7 @@ function registerLoginCommand(): void {
           const apiKeyFromEnv = process.env.ANTHROPIC_API_KEY;
           
           if (apiKeyFromEnv) {
-            const authResult = await authManager.authenticateWithApiKey(apiKeyFromEnv);
+            const authResult = await authManager.authenticate(AuthMethod.API_KEY);
             if (authResult.success) {
               console.log('Successfully logged in with API key from environment.');
               
@@ -110,7 +111,7 @@ function registerLoginCommand(): void {
           } else {
             // Default to OAuth if no API key is available
             console.log('No API key found. Proceeding with OAuth authentication...');
-            const authResult = await authManager.authenticateWithOAuth();
+            const authResult = await authManager.authenticate(AuthMethod.OAUTH);
             if (authResult.success) {
               console.log('Successfully logged in with OAuth.');
               

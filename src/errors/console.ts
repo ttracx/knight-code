@@ -1,10 +1,10 @@
 /**
  * Console Error Handling
  * 
- * Utilities for handling console errors and setting up error handling for console output.
+ * Provides functions for handling console errors and warnings.
  */
 
-import { ErrorManager, ErrorCategory, ErrorLevel } from './types.js';
+import { ErrorManager, ErrorOptions, ErrorCategory, ErrorLevel } from './types.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -15,47 +15,32 @@ export function setupConsoleErrorHandling(errorManager: ErrorManager): void {
   const originalConsoleError = console.error;
   const originalConsoleWarn = console.warn;
   
-  // Override console.error to track and handle errors
-  console.error = function(...args: any[]): void {
-    // Use the original console.error for output
+  // Override console.error
+  console.error = function(...args: unknown[]): void {
+    // Call original console.error
     originalConsoleError.apply(console, args);
     
-    // Don't process logger errors to avoid infinite recursion
-    if (args[0] && typeof args[0] === 'string' && (
-      args[0].includes('FATAL ERROR:') ||
-      args[0].includes('Uncaught Exception:') ||
-      args[0].includes('Unhandled Promise Rejection:')
-    )) {
-      return;
-    }
-    
-    // Extract the error from the arguments
-    const error = extractErrorFromArgs(args);
-    
-    // Track the error
-    if (error) {
+    // Handle the error
+    const error = args[0];
+    if (error instanceof Error) {
       errorManager.handleError(error, {
-        level: ErrorLevel.MINOR,
         category: ErrorCategory.APPLICATION,
-        context: { source: 'console.error' }
+        level: ErrorLevel.ERROR
       });
     }
   };
   
-  // Override console.warn to track warnings
-  console.warn = function(...args: any[]): void {
-    // Use the original console.warn for output
+  // Override console.warn
+  console.warn = function(...args: unknown[]): void {
+    // Call original console.warn
     originalConsoleWarn.apply(console, args);
     
-    // Extract the warning from the arguments
-    const warning = extractErrorFromArgs(args);
-    
-    // Track the warning as an informational error
-    if (warning) {
+    // Handle the warning
+    const warning = args[0];
+    if (warning instanceof Error) {
       errorManager.handleError(warning, {
-        level: ErrorLevel.INFORMATIONAL,
         category: ErrorCategory.APPLICATION,
-        context: { source: 'console.warn' }
+        level: ErrorLevel.WARNING
       });
     }
   };

@@ -53,7 +53,7 @@ export async function initialize(options: any = {}): Promise<AppInstance> {
     const auth = await initAuthentication(config);
     
     // Initialize AI client
-    const ai = await initAI(config, auth);
+    const ai = await initAI(config);
     
     // Initialize codebase analysis
     const codebase = await initCodebaseAnalysis(config);

@@ -55,7 +55,7 @@ export enum AuthMethod {
 }
 
 /**
- * Authentication states
+ * Authentication state enum
  */
 export enum AuthState {
   /**
@@ -79,19 +79,14 @@ export enum AuthState {
   FAILED = 'failed',
   
   /**
-   * Refreshing authentication
-   */
-  REFRESHING = 'refreshing',
-  
-  /**
    * Expired authentication
    */
   EXPIRED = 'expired',
-  
+
   /**
-   * Unauthenticated state
+   * Token refresh in progress
    */
-  UNAUTHENTICATED = 'unauthenticated'
+  REFRESHING = 'refreshing'
 }
 
 /**

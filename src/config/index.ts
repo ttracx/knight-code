@@ -64,15 +64,15 @@ const DEFAULT_CONFIG = {
     shell: process.env.SHELL || 'bash'
   },
   
-  // Logger configuration
-  logger: {
+  // App information
+  version: '0.2.29',
+  
+  // Logging configuration
+  logging: {
     level: 'info',
     timestamps: true,
     colors: true
   },
-  
-  // App information
-  version: '0.2.29'
 };
 
 /**
@@ -278,14 +278,10 @@ export async function loadConfig(options: any = {}): Promise<any> {
   // Validate the configuration
   validateConfig(config);
   
-  // Configure logger
-  import('../utils/logger.js').then(loggerModule => {
-    if (loggerModule.configureLogger) {
-      loggerModule.configureLogger(config);
-    }
-  }).catch(error => {
-    logger.warn('Failed to configure logger', error);
-  });
+  // Update the logging check
+  if (config.logging?.level) {
+    logger.info('Logging configuration loaded');
+  }
   
   return config;
 }

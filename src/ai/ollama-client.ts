@@ -77,6 +77,12 @@ export interface StreamEvent {
   };
 }
 
+interface ApiError {
+  error?: {
+    message?: string;
+  };
+}
+
 // Default API configuration
 const DEFAULT_CONFIG = {
   apiBaseUrl: 'http://localhost:11434',
@@ -178,14 +184,13 @@ export class OllamaClient {
           text: response.response
         }]
       };
-    } catch (error) {
-      logger.error('Completion request failed', error);
-      
-      throw createUserError('Failed to get response from Ollama', {
-        cause: error,
-        category: ErrorCategory.AI_SERVICE,
-        resolution: 'Check if Ollama is running and try again.'
-      });
+    } catch (error: unknown) {
+      let errorMessage = 'Unknown error';
+      if (error && typeof error === 'object' && 'error' in error) {
+        const err = error as { error?: { message?: string } };
+        errorMessage = err.error?.message || 'Unknown error';
+      }
+      throw new Error(errorMessage);
     }
   }
   
@@ -223,15 +228,27 @@ export class OllamaClient {
         headers: this.getHeaders(),
         body: JSON.stringify(request)
       }, onEvent);
-    } catch (error) {
-      logger.error('Streaming completion request failed', error);
-      
-      throw createUserError('Failed to get streaming response from Ollama', {
-        cause: error,
-        category: ErrorCategory.AI_SERVICE,
-        resolution: 'Check if Ollama is running and try again.'
-      });
+    } catch (error: unknown) {
+      let errorMessage = 'Unknown error';
+      if (error && typeof error === 'object' && 'error' in error) {
+        const err = error as { error?: { message?: string } };
+        errorMessage = err.error?.message || 'Unknown error';
+      }
+      throw new Error(errorMessage);
     }
+  }
+  
+  /**
+   * Type guard for API error response
+   */
+  private isApiErrorResponse(error: unknown): error is { error?: { message?: string } } {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'error' in error &&
+      typeof (error as any).error === 'object' &&
+      (error as any).error !== null
+    );
   }
   
   /**
@@ -249,10 +266,41 @@ export class OllamaClient {
       
       logger.debug('Connection test successful', { modelUsed: result.model });
       return true;
-    } catch (error) {
-      logger.error('Connection test failed', error);
+    } catch (error: unknown) {
+      let errorMessage = 'Unknown error';
+      try {
+        const apiError = error as ApiError;
+        if (apiError?.error?.message) {
+          errorMessage = apiError.error.message;
+        }
+      } catch {
+        // If parsing fails, use the default error message
+      }
+      logger.error(errorMessage);
       return false;
     }
+  }
+  
+  /**
+   * Handle error responses from the API
+   */
+  private async handleErrorResponse(response: Response): Promise<never> {
+    let errorMessage: string;
+    let errorDetails: any;
+    
+    try {
+      const errorResponse = await response.json() as ApiError;
+      errorMessage = errorResponse.error?.message || 'Unknown error';
+      errorDetails = errorResponse;
+    } catch {
+      errorMessage = `HTTP error ${response.status}`;
+      errorDetails = { status: response.status };
+    }
+    
+    throw createUserError(`Ollama API error: ${errorMessage}`, {
+      category: ErrorCategory.AI_SERVICE,
+      details: errorDetails
+    });
   }
   
   /**
@@ -333,27 +381,5 @@ export class OllamaClient {
     } finally {
       reader.releaseLock();
     }
-  }
-  
-  /**
-   * Handle error responses from the API
-   */
-  private async handleErrorResponse(response: Response): Promise<never> {
-    let errorMessage: string;
-    let errorDetails: any;
-    
-    try {
-      const error = await response.json();
-      errorMessage = error.error?.message || 'Unknown error';
-      errorDetails = error;
-    } catch {
-      errorMessage = `HTTP error ${response.status}`;
-      errorDetails = { status: response.status };
-    }
-    
-    throw createUserError(`Ollama API error: ${errorMessage}`, {
-      category: ErrorCategory.AI_SERVICE,
-      details: errorDetails
-    });
   }
 } 
