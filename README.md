@@ -66,7 +66,7 @@ See the [Configuration Guide](docs/configuration.md) for details.
 
 ```bash
 # Clone the repository
-git clone https://github.com/ttracx/knightcode.git
+git clone https://github.com/neuroequalityorg/knightcode.git
 cd knightcode
 
 # Install dependencies
